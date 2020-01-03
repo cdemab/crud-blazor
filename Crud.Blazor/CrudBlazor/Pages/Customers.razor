@@ -1,0 +1,78 @@
+﻿@page "/customers"
+
+@inject ICustomerService _customerService
+@inject IJSRuntime JSRuntime;
+
+<h1>Clientes</h1>
+
+<p>Listado potencial de clientes</p>
+
+<button class="btn btn-success mb-3" data-toggle="modal" data-target="#addModal" @onclick="(() => InitializeObject())">Crear</button>
+
+<ConfirmDialog OnClick="Delete" />
+<CustomerEditor Title="@title" customer="customerObject" OnRefresh="OnInitializedAsync"></CustomerEditor>
+
+@if (customers == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Editar</th>
+                <th>Eliminar</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var customer in customers)
+            {
+                <tr>
+                    <td>@customer.Id</td>
+                    <td>@customer.FullName</td>
+                    <td>@customer.Email</td>
+                    <td>@customer.Phone</td>
+                    <td><button class="btn btn-primary" @onclick="(() => InitializeObject(customer))" data-toggle="modal" data-target="#addModal">Editar</button></td>
+                    <td><button class="btn btn-danger" @onclick="(() => customerObject.Id = customer.Id)" data-toggle="modal" data-target="#confirmDialogModal">Eliminar</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string title = String.Empty;
+    private List<Customer> customers;
+    private Customer customerObject = new Customer();
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await _customerService.Get();
+    }
+
+    private void InitializeObject(Customer customer = null)
+    {
+        if (customer is null)
+        {
+            customerObject = new Customer();
+            title = "Crear Cliente";
+        }
+        else
+        {
+            customerObject = customer;
+            title = "Editar Cliente";
+        }
+    }
+
+    private async Task Delete()
+    {
+        var task = await _customerService.Delete(customerObject.Id);
+        await JSRuntime.InvokeAsync<object>("closeModal", "confirmDialogModal");
+        await OnInitializedAsync();
+    }
+}
